@@ -3,14 +3,16 @@ import Role from '../../models/sup_model/Role.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import sendEmail from '../../utils/sendEmail.js';
+import sendSMS from '../../utils/sendSMS.js';
 
 // @desc    Register new user
 // @route   POST /auth/register
 // @access  Public
+
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
-    console.log('Register attempt:', { name, email, roleName: role });
+    const { name, email, password, role, phoneNumber } = req.body;
+    console.log('Register attempt:', { name, email, phoneNumber, roleName: role });
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -19,17 +21,24 @@ export const register = async (req, res) => {
     }
 
     // Role Assignment for Public Registration (Strict)
-    // Ignore req.body.role for security. Always assign default 'Church Staff'.
-    const defaultRoleName = 'Church Staff';
-    const userRole = await Role.findOne({ name: defaultRoleName });
+    // Ignore req.body.role for security unless explicitly handled for invites later.
+    // Default to 'Super Admin' as per new requirement.
+    const defaultRoleName = 'Super Admin';
+    let userRole = await Role.findOne({ name: defaultRoleName });
     
+    // Auto-create role if it doesn't exist (Resilience fix)
     if (!userRole) {
-         return res.status(500).json({ success: false, message: 'Default role configuration missing' });
+         console.warn(`Default role '${defaultRoleName}' missing. Auto-creating...`);
+         userRole = await Role.create({
+            name: defaultRoleName,
+            description: 'Auto-created Super Admin role',
+            permissions: [] // Start with empty permissions, admin needs to re-seed or configure
+         });
     }
 
     console.log('Creating user with default role:', defaultRoleName);
     // Create user
-    const user = await User.register({ name, email, password, role: userRole._id });
+    const user = await User.register({ name, email, password, role: userRole._id, phoneNumber });
     console.log('User created:', user._id);
 
     // Generate tokens
@@ -346,6 +355,7 @@ export const verifyOTP = async (req, res) => {
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+    console.log(email)
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -355,12 +365,10 @@ export const forgotPassword = async (req, res) => {
     // Get reset token
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
+    console.log(req)
 
     // Create reset URL
-    const resetUrl = `${req.protocol}://${req.get(
-      'host'
-    )}/auth/reset-password?token=${resetToken}`;
-
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`
     const message = `You are receiving this email because you (or someone else) has requested the reset of a password. \n\n Please make a PUT request to: \n ${resetUrl}`;
 
     try {
@@ -397,11 +405,11 @@ export const forgotPassword = async (req, res) => {
 // @access  Public
 export const resetPassword = async (req, res) => {
   try {
-    const { token, password } = req.body; // or req.query.token? adhering to user request POST /api/auth/reset-password
+    const { token, newPassword } = req.body; // or req.query.token? adhering to user request POST /api/auth/reset-password
 
     // The user might send token in body or query. Let's check body first as it's a POST.
-    if (!token || !password) {
-         return res.status(400).json({ success: false, message: 'Please provide token and new password' });
+    if (!token || !newPassword) {
+         return res.status(400).json({  success: false, message: 'Please provide token and new password' });
     }
 
     // Hash token
@@ -420,7 +428,7 @@ export const resetPassword = async (req, res) => {
     }
 
     // Set new password
-    user.password = password;
+    user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();

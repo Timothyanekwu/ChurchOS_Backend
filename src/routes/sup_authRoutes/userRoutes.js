@@ -6,6 +6,6 @@ const router = express.Router();
 
 router.route('/')
   .post(protect, authorize('user.create'), createUser)
-  .get(protect, authorize('user.read'), getUsers);
+  .get(protect, authorize('user.view'), getUsers);
 
 export default router;

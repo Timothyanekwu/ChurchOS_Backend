@@ -20,6 +20,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
       validate: [validator.isEmail, 'Please provide a valid email'],
     },
+    phoneNumber: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null/undefined to not conflict on uniqueness
+      trim: true,
+    },
     password: {
       type: String,
       required: [true, 'Please provide a password'],
@@ -35,10 +41,16 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
+    },
     emailVerificationToken: String,
     emailVerificationExpire: Date,
     otp: String,
     otpExpire: Date,
+    phoneOtp: String,
+    phoneOtpExpire: Date,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },
@@ -136,6 +148,23 @@ userSchema.methods.generateOTP = function () {
 
   // Set expire (e.g., 10 minutes)
   this.otpExpire = Date.now() + 10 * 60 * 1000;
+
+  return otp;
+};
+
+// Method: Generate Phone OTP
+userSchema.methods.generatePhoneOTP = function () {
+  const otp = otpGenerator.generate(6, {
+    upperCaseAlphabets: false,
+    specialChars: false,
+    lowerCaseAlphabets: false,
+  });
+
+  // Hash OTP and set to phoneOtp field
+  this.phoneOtp = crypto.createHash('sha256').update(otp).digest('hex');
+
+  // Set expire (e.g., 10 minutes)
+  this.phoneOtpExpire = Date.now() + 10 * 60 * 1000;
 
   return otp;
 };
