@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 const sendEmail = async (options) => {
   // Create transporter
@@ -21,9 +21,19 @@ const sendEmail = async (options) => {
     // html: options.html, // Optional: for HTML emails
   };
 
+  if (process.env.NODE_ENV === "development") {
+    console.log("-----------------------------------------");
+    console.log(`[EMAIL DEV MOCK]`);
+    console.log(`To: ${options.email}`);
+    console.log(`Subject: ${options.subject}`);
+    console.log(`Message: \n${options.message}`);
+    console.log("-----------------------------------------");
+    return;
+  }
+
   const info = await transporter.sendMail(message);
 
-  console.log('Message sent: %s', info.messageId);
+  console.log("Message sent: %s", info.messageId);
 };
 
 export default sendEmail;

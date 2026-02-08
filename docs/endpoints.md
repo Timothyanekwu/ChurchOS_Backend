@@ -2,155 +2,126 @@
 
 This document lists all available API endpoints in the ChurchOS SuperAdmin Platform.
 
-## All Endpoints
-- `GET /api/health`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
-- `GET /api/auth/me`
-- `DELETE /api/auth/delete/:id`
-- `POST /api/auth/send-email-verification`
-- `POST /api/auth/verify-email`
-- `POST /api/auth/send-otp`
-- `POST /api/auth/verify-otp`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password`
-- `POST /api/auth/change-password`
-- `POST /api/users`
-- `GET /api/users`
-- `GET /api/roles`
-- `GET /api/permissions`
+## Master List (Summary)
 
-## Public Endpoints
-
-### Health Check
-- **URL**: `/api/health`
-- **Method**: `GET`
-- **Description**: Verify that the server is running and healthy.
-- **Response**: `200 OK`
-
-### Authentication (Public)
-
-#### Register
-- **URL**: `/api/auth/register`
-- **Method**: `POST`
-- **Description**: Register a new user.
-- **Body**:
-  ```json
-  {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "secretpassword"
-  }
-  ```
-- **Note**: This public endpoint prevents assigning specific roles. All new users are assigned 'Church Staff' by default. Use `/api/users` (Admin) for custom role assignment.
-
-#### Login
-- **URL**: `/api/auth/login`
-- **Method**: `POST`
-- **Description**: Authenticate a user and receive access/refresh tokens.
-- **Body**:
-  ```json
-  {
-    "email": "john@example.com",
-    "password": "secretpassword"
-  }
-  ```
-
-#### Forgot Password
-- **URL**: `/api/auth/forgot-password`
-- **Method**: `POST`
-- **Body**: `{"email": "john@example.com"}`
-- **Description**: Sends a password reset email.
-
-#### Reset Password
-- **URL**: `/api/auth/reset-password`
-- **Method**: `POST`
-- **Body**: `{"token": "...", "password": "newpassword"}`
-- **Description**: Sets a new password using the reset token.
-
-### Email Verification & OTP
-
-#### Send Email Verification
-- **URL**: `/api/auth/send-email-verification`
-- **Method**: `POST`
-- **Body**: `{"email": "john@example.com"}`
-
-#### Verify Email
-- **URL**: `/api/auth/verify-email`
-- **Method**: `POST`
-- **Body**: `{"token": "..."}`
-
-#### Send OTP
-- **URL**: `/api/auth/send-otp`
-- **Method**: `POST`
-- **Body**: `{"email": "john@example.com"}`
-
-#### Verify OTP
-- **URL**: `/api/auth/verify-otp`
-- **Method**: `POST`
-- **Body**: `{"email": "john@example.com", "otp": "123456"}`
-
-## Protected Endpoints
-
-### User Account (Self)
-
-#### Get Current User
-- **URL**: `/api/auth/me`
-- **Method**: `GET`
-- **Headers**: `Authorization: Bearer <accessToken>`
-
-#### Change Password
-- **URL**: `/api/auth/change-password`
-- **Method**: `POST`
-- **Headers**: `Authorization: Bearer <accessToken>`
-- **Body**: `{"currentPassword": "...", "newPassword": "..."}`
-
-#### Delete User Account
-- **URL**: `/api/auth/delete/:id`
-- **Method**: `DELETE`
-- **Headers**: `Authorization: Bearer <accessToken>`
-
-#### Refresh Token
-- **URL**: `/api/auth/refresh`
-- **Method**: `POST`
-- **Body**: `{"refreshToken": "..."}`
+- `GET /` - Root / API Status
+- `GET /api/health` - System Health Check
+- `POST /api/auth/register` - User Registration
+- `POST /api/auth/login` - User Login
+- `POST /api/auth/refresh` - Refresh Tokens
+- `GET /api/auth/me` - Get Current User
+- `DELETE /api/auth/delete/:id` - Delete User Account
+- `POST /api/auth/send-email-verification` - Send Email Verification
+- `POST /api/auth/verify-email` - Verify Email
+- `POST /api/auth/send-otp` - Send SMS OTP
+- `POST /api/auth/verify-otp` - Verify SMS OTP
+- `POST /api/auth/forgot-password` - Forgot Password
+- `POST /api/auth/reset-password` - Reset Password
+- `POST /api/auth/change-password` - Change Password
+- `POST /api/users` - Create User (Admin)
+- `GET /api/users` - Get All Users (Admin)
+- `GET /api/roles` - Get All Roles (RBAC)
+- `GET /api/permissions` - Get All Permissions (RBAC)
+- `POST /api/church/register` - Register Church (Onboarding)
+- `POST /api/church/validate` - Validate Church Registration
+- `GET /api/church/registration/status` - Get Registration Status
+- `POST /api/church/registration/cancel` - Cancel Registration
+- `POST /api/church/registration/restart` - Restart Registration
+- `POST /api/church/verify-email/send` - Send Church Email Verification
+- `POST /api/church/verify-email/confirm` - Confirm Church Email
+- `POST /api/church/resend-email` - Resend Church Verification Email
+- `POST /api/church/verify-phone/send` - Send Church Phone OTP
+- `POST /api/church/verify-phone/confirm` - Confirm Church Phone OTP
+- `POST /api/church/resend-otp` - Resend Church Phone OTP
+- `POST /api/church/:id/assign-super-admin` - Assign Super Admin to Church
+- `GET /api/church/:id/admins` - Get Church Admins
+- `POST /api/church/:id/branches/hq` - Create HQ Branch
+- `GET /api/church/:id/branches` - Get Church Branches
+- `GET /api/church/:id` - Get Church Entity
+- `PUT /api/church/:id` - Update Church Entity
 
 ---
 
-## Admin Endpoints
+## Endpoint Details
 
-### User Management
-*Requires `user.create` or `user.read` permissions.*
+### Public & System
 
-#### Create User
-- **URL**: `/api/users`
-- **Method**: `POST`
-- **Headers**: `Authorization: Bearer <accessToken>`
-- **Body**:
-  ```json
-  {
-    "name": "Staff Name",
-    "email": "staff@test.com",
-    "password": "password123",
-    "role": "Admin" // "Super Admin", "Admin", or "Church Staff"
-  }
-  ```
+- **GET /**: Verify API status.
+- **GET /api/health**: Verify server health.
 
-#### Get All Users
-- **URL**: `/api/users`
-- **Method**: `GET`
-- **Headers**: `Authorization: Bearer <accessToken>`
+### Authentication (`/api/auth`)
 
-### RBAC (Read-Only)
-*Roles and Permissions are rigid and defined by developers in `seedRoles.js`.*
+- **POST /register**: Public registration (Default role: Church Staff).
+- **POST /login**: Authenticate and receive tokens.
+- **POST /refresh**: Refresh access tokens using refresh token.
+- **GET /me**: Get current user profile (Protected).
+- **DELETE /delete/:id**: Delete account by ID (Protected).
+- **POST /send-email-verification**: Trigger verification email.
+- **POST /verify-email**: Verify email via token.
+- **POST /send-otp**: Trigger SMS OTP.
+- **POST /verify-otp**: Verify SMS OTP code.
+- **POST /forgot-password**: Trigger reset password email.
+- **POST /reset-password**: Reset password via token.
+- **POST /change-password**: Update password (Protected).
 
-#### Get All Roles
-- **URL**: `/api/roles`
-- **Method**: `GET`
-- **Headers**: `Authorization: Bearer <accessToken>`
+### User Management (`/api/users`)
 
-#### Get All Permissions
-- **URL**: `/api/permissions`
-- **Method**: `GET`
-- **Headers**: `Authorization: Bearer <accessToken>`
+- **POST /**: Admin-only user creation (Protected, `user.create`).
+- **GET /**: List all users (Protected, `user.view`).
+
+### RBAC (`/api`)
+
+- **GET /roles**: List all available roles (Protected, `system.view`).
+- **GET /permissions**: List all available permissions (Protected, `system.view`).
+
+### Church Management (`/api/church`)
+
+- **POST /register**: Initiate church onboarding.
+  - **Body**:
+    ```json
+    {
+      "church": {
+        "name": "Church Name",
+        "website": "https://...",
+        "foundedYear": 2000
+      },
+      "contact": {
+        "email": "church@example.com",
+        "phone": "+1234567890"
+      },
+      "address": {
+        "country": "Country Name",
+        "state": "State Name",
+        "city": "City Name",
+        "street": "123 Street Name",
+        "postalCode": "00000"
+      },
+      "settings": {
+        "timezone": "UTC",
+        "currency": "USD",
+        "language": "en"
+      }
+    }
+    ```
+- **POST /validate**: Check name availability.
+  - **Body**: `{ "name": "Church Name" }`
+- **POST /verify-email/confirm**: Confirm email verification.
+  - **Body**: `{ "token": "verification-token" }`
+- **POST /verify-phone/confirm**: Confirm phone OTP.
+  - **Body**: `{ "otp": "123456" }`
+- **POST /:id/assign-super-admin**: Link a user as Super Admin.
+  - **Body**: `{ "userId": "user_mongo_id" }`
+- **POST /:id/branches/hq**: Create HQ branch.
+  - **Body**: `{ "name": "HQ Name", "address": "...", "contact": "..." }`
+- **PUT /:id**: Update church entity.
+  - **Body**: `{ "church": { "name": "New Name" }, "address": { ... } }` (Any schema field)
+- **GET /registration/status**: Check current progress.
+- **POST /registration/cancel**: Cancel ongoing registration.
+- **POST /registration/restart**: Reset registration progress.
+- **POST /verify-email/send**: Send church-specific verification email.
+- **POST /resend-email**: Resend verification email.
+- **POST /verify-phone/send**: Send church-specific Phone OTP.
+- **POST /resend-otp**: Resend phone OTP.
+- **GET /:id/admins**: List all admins for a specific church.
+- **GET /:id/branches**: List all branches for a church.
+- **GET /:id**: Fetch church details.
